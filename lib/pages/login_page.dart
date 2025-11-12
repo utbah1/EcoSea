@@ -45,7 +45,7 @@ class LoginPage extends StatelessWidget {
                           style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color:  Colors.white)),
+                              color: Color(0xff023E8A))),
                       const SizedBox(height: 20),
 
                       const InputField(hint: "Email"),
