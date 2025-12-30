@@ -1,6 +1,6 @@
+import 'package:ecosea/pages2/camera_page.dart';
 import 'package:flutter/material.dart';
 import '../widgets/bottom_navbar.dart';
-import 'buat_laporan_page.dart';
 
 class PelaporanPage extends StatelessWidget {
   const PelaporanPage({super.key});
@@ -55,7 +55,7 @@ class PelaporanPage extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const BuatLaporanPage()),
+                        MaterialPageRoute(builder: (_) => const CameraPage()),
                       );
                     },
                     icon: const Icon(Icons.camera_alt, color: Colors.white),

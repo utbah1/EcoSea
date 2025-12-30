@@ -1,105 +1,164 @@
-import 'package:flutter/material.dart';
-import '../widgets/bottom_navbar.dart';
+import 'dart:io';
+import 'dart:typed_data';
 
-class BuatLaporanPage extends StatelessWidget {
-  const BuatLaporanPage({super.key});
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+
+class BuatPelaporanPage extends StatefulWidget {
+  final File? imageFile;
+  final Uint8List? webImage;
+  final double latitude;
+  final double longitude;
+
+  const BuatPelaporanPage({
+    super.key,
+    this.imageFile,
+    this.webImage,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  @override
+  State<BuatPelaporanPage> createState() => _BuatPelaporanPageState();
+}
+
+class _BuatPelaporanPageState extends State<BuatPelaporanPage> {
+  final TextEditingController judulController = TextEditingController();
+  final TextEditingController deskripsiController = TextEditingController();
+
+  String lokasiNama = "Mengambil lokasi...";
+
+  @override
+  void initState() {
+    super.initState();
+    _getNamaLokasi();
+  }
+
+  Future<void> _getNamaLokasi() async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        widget.latitude,
+        widget.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+
+        setState(() {
+          lokasiNama =
+              "${place.name}, ${place.subLocality}, ${place.locality}, ${place.administrativeArea}";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        lokasiNama = "Lokasi tidak diketahui";
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFE0F7FA),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF00B4D8),
-        title: const Text("Buat Laporan", style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Placeholder foto
-          Container(
-            height: 150,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Center(
-              child: Text(
-                "📸 Hasil Foto Akan Muncul di Sini",
-                style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
+    Widget imagePreview;
 
-          // Lokasi Deteksi
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
+    if (kIsWeb && widget.webImage != null) {
+      imagePreview = Image.memory(
+        widget.webImage!,
+        width: double.infinity,
+        height: 230,
+        fit: BoxFit.cover,
+      );
+    } else if (widget.imageFile != null) {
+      imagePreview = Image.file(
+        widget.imageFile!,
+        width: double.infinity,
+        height: 230,
+        fit: BoxFit.cover,
+      );
+    } else {
+      imagePreview = Container(
+        height: 230,
+        color: Colors.grey[300],
+        child: const Center(child: Text("Tidak ada gambar")),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Buat Laporan"),
+        backgroundColor: const Color(0xFF00B4D8),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: imagePreview,
             ),
-            child: const Column(
+
+            const SizedBox(height: 20),
+
+            const Text(
+              "Lokasi Otomatis",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+
+            const SizedBox(height: 6),
+
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Lokasi Foto", style: TextStyle(fontWeight: FontWeight.bold)),
-                Text("Pantai Alam Indah"),
-                Text(
-                  "(Terdeteksi otomatis berdasarkan lokasi saat pengambilan foto)",
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                const Icon(Icons.location_on, color: Colors.red),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    lokasiNama,
+                    style: const TextStyle(color: Colors.black87),
+                  ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 20),
 
-          const Text(
-            "Tulis Detail Laporan",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 20),
 
-          TextField(
-            maxLines: 6,
-            decoration: InputDecoration(
-              hintText: "Tulis deskripsi laporan di sini...",
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+            TextField(
+              controller: judulController,
+              decoration: const InputDecoration(
+                labelText: "Judul Laporan",
+                border: OutlineInputBorder(),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
 
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0077B6),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () {},
-              child: const Text(
-                "Kirim Laporan Anda",
-                style: TextStyle(color: Colors.white, fontSize: 16),
+            const SizedBox(height: 20),
+
+            TextField(
+              controller: deskripsiController,
+              maxLines: 5,
+              decoration: const InputDecoration(
+                labelText: "Deskripsi Laporan",
+                border: OutlineInputBorder(),
               ),
             ),
-          ),
-        ],
+
+            const SizedBox(height: 30),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Backend tetap kirim latitude & longitude
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Laporan berhasil dibuat")),
+                  );
+                },
+                child: const Text("Kirim Laporan"),
+              ),
+            ),
+          ],
+        ),
       ),
-      bottomNavigationBar: const BottomNavbar(currentIndex: 1),
     );
   }
 }
