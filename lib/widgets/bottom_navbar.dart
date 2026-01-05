@@ -2,47 +2,18 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:geolocator/geolocator.dart';
 
 import '../pages/home_page.dart';
 import '../pages2/profil_page.dart';
-import '../pages2/buat_laporan_page.dart'; // halaman laporan
+import '../pages2/buat_laporan_page.dart';
 
 class BottomNavbar extends StatelessWidget {
   final int currentIndex;
 
   const BottomNavbar({super.key, required this.currentIndex});
 
-  Future<Position> _getLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw 'Location service tidak aktif';
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw 'Izin lokasi ditolak';
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw 'Izin lokasi ditolak permanen';
-    }
-
-    return await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-  }
-
   Future<void> _takePhoto(BuildContext context) async {
     final picker = ImagePicker();
-
-    Position position = await _getLocation();
 
     final photo = await picker.pickImage(
       source: ImageSource.camera,
@@ -55,17 +26,14 @@ class BottomNavbar extends StatelessWidget {
         MaterialPageRoute(
           builder: (_) => BuatPelaporanPage(
             imageFile: File(photo.path),
-            latitude: position.latitude,
-            longitude: position.longitude,
           ),
         ),
       );
     }
   }
 
-  // ===============================
   // NAVIGASI TAB
-  // ===============================
+
   void _onItemTapped(BuildContext context, int index) {
     if (index == currentIndex) return;
 
@@ -96,7 +64,7 @@ class BottomNavbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const activeColor = Color(0xFF0077B6);
-    const inactiveColor = Colors.grey;
+    const inactiveColor = Color(0xFF9E9E9E);
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 30),
@@ -123,17 +91,23 @@ class BottomNavbar extends StatelessWidget {
             icon: Icon(
               Icons.home,
               size: 30,
-              color: currentIndex == 0 ? activeColor : const Color(0xFF9E9E9E),
+              color: currentIndex == 0 ? activeColor : inactiveColor,
             ),
           ),
 
-          /// CAMERA (LANGSUNG BUKA KAMERA)
-          IconButton(
-            onPressed: () => _takePhoto(context),
-            icon: const Icon(
-              Icons.camera_alt_outlined,
-              size: 34,
-              color: Color(0xFF9E9E9E),
+          /// CAMERA 
+          Container(
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFF0077B6),
+            ),
+            child: IconButton(
+              onPressed: () => _takePhoto(context),
+              icon: const Icon(
+                Icons.camera_alt,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
           ),
 

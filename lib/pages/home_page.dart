@@ -8,6 +8,7 @@ import '../widgets/bottom_navbar.dart';
 import '../pages2/pelaporan_page.dart';
 import '../pages2/riwayat_page.dart';
 import '../pages2/maps_page.dart';
+import '../pages2/chatbot_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -56,7 +57,7 @@ class _HomePageState extends State<HomePage> {
             children: [
               const SizedBox(height: 16),
 
-              /// HEADER  
+              /// HEADER
               const Text(
                 "EcoSea",
                 style: TextStyle(
@@ -67,7 +68,7 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 20),
 
-              /// MAP SECTION
+              /// MAP
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
@@ -157,7 +158,7 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 20),
 
-              /// BERITA SECTION
+              /// BERITA
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
@@ -188,6 +189,23 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
+
+      /// CHATBOT
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF1E40FF),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ChatbotPage(),
+            ),
+          );
+        },
+        child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+
+      /// NAVBAR
       bottomNavigationBar: const BottomNavbar(currentIndex: 0),
     );
   }
