@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../widgets/home_menu_item.dart';
 import '../widgets/bottom_navbar.dart';
+import '../widgets/ecosea_map_view.dart';
 import '../pages2/pelaporan_page.dart';
 import '../pages2/riwayat_page.dart';
 import '../pages2/maps_page.dart';
@@ -18,7 +18,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  LatLng? currentLocation;
+  LatLng? userLocation;
   bool isLoading = true;
 
   @override
@@ -28,23 +28,38 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _getLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (!mounted) return;
+        setState(() => isLoading = false);
+        return;
+      }
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever ||
+          permission == LocationPermission.denied) {
+        if (!mounted) return;
+        setState(() => isLoading = false);
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        userLocation = LatLng(position.latitude, position.longitude);
+        isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => isLoading = false);
     }
-    if (permission == LocationPermission.deniedForever) return;
-
-    final position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
-    setState(() {
-      currentLocation = LatLng(position.latitude, position.longitude);
-      isLoading = false;
-    });
   }
 
   @override
@@ -57,18 +72,14 @@ class _HomePageState extends State<HomePage> {
             children: [
               const SizedBox(height: 16),
 
-              /// HEADER
               const Text(
                 "EcoSea",
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 20),
 
-              /// MAP
+              /// MAP MINI (sama persis: polygon + marker user)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
@@ -79,34 +90,12 @@ class _HomePageState extends State<HomePage> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: isLoading || currentLocation == null
+                    child: (isLoading || userLocation == null)
                         ? const Center(child: CircularProgressIndicator())
-                        : FlutterMap(
-                            options: MapOptions(
-                              initialCenter: currentLocation!,
-                              initialZoom: 16,
-                            ),
-                            children: [
-                              TileLayer(
-                                urlTemplate:
-                                    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                                userAgentPackageName: 'com.example.ecosea',
-                              ),
-                              MarkerLayer(
-                                markers: [
-                                  Marker(
-                                    point: currentLocation!,
-                                    width: 50,
-                                    height: 50,
-                                    child: const Icon(
-                                      Icons.location_pin,
-                                      color: Colors.red,
-                                      size: 45,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                        : EcoSeaMapView(
+                            userLocation: userLocation!,
+                            zoom: 15,
+                            polygonBorderWidth: 2,
                           ),
                   ),
                 ),
@@ -129,9 +118,7 @@ class _HomePageState extends State<HomePage> {
                       label: 'Pelaporan',
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const PelaporanPage(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const PelaporanPage()),
                       ),
                     ),
                     HomeMenuItem(
@@ -139,9 +126,7 @@ class _HomePageState extends State<HomePage> {
                       label: 'Riwayat',
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const RiwayatPage(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const RiwayatPage()),
                       ),
                     ),
                     HomeMenuItem(
@@ -166,8 +151,7 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     const Text(
                       "Berita Terbaru",
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
                     Container(
@@ -176,9 +160,7 @@ class _HomePageState extends State<HomePage> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Center(
-                        child: Text("Konten Berita"),
-                      ),
+                      child: const Center(child: Text("Konten Berita")),
                     ),
                   ],
                 ),
@@ -192,20 +174,15 @@ class _HomePageState extends State<HomePage> {
 
       /// CHATBOT
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF1E40FF),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const ChatbotPage(),
-            ),
-          );
-        },
+        backgroundColor: const Color.fromARGB(255, 0, 96, 192),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ChatbotPage()),
+        ),
         child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 
-      /// NAVBAR
       bottomNavigationBar: const BottomNavbar(currentIndex: 0),
     );
   }

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -17,7 +16,7 @@ class CameraPage extends StatelessWidget {
     );
 
     if (photo != null) {
-      _goToReport(context, File(photo.path));
+      _goToReport(context, photo);
     }
   }
 
@@ -29,16 +28,16 @@ class CameraPage extends StatelessWidget {
     );
 
     if (photo != null) {
-      _goToReport(context, File(photo.path));
+      _goToReport(context, photo);
     }
   }
 
-  void _goToReport(BuildContext context, File imageFile) {
+  void _goToReport(BuildContext context, XFile imageFile) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => BuatPelaporanPage(
-          imageFile: imageFile,
+          foto: imageFile,
         ),
       ),
     );

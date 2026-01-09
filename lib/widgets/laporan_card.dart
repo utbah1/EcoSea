@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class LaporanCard extends StatelessWidget {
   final String imagePath;
+  final bool isNetwork;
   final String deskripsi;
   final String tanggal;
   final String status;
@@ -9,6 +10,7 @@ class LaporanCard extends StatelessWidget {
   const LaporanCard({
     super.key,
     required this.imagePath,
+    this.isNetwork = false,
     required this.deskripsi,
     required this.tanggal,
     required this.status,
@@ -57,17 +59,28 @@ class LaporanCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Foto laporan
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-            child: Image.asset(
-              imagePath,
-              width: double.infinity,
-              height: 180,
-              fit: BoxFit.cover,
-            ),
+            child: isNetwork
+                ? Image.network(
+                    imagePath,
+                    width: double.infinity,
+                    height: 180,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 180,
+                      color: Colors.grey[200],
+                      alignment: Alignment.center,
+                      child: const Text("Gagal memuat foto"),
+                    ),
+                  )
+                : Image.asset(
+                    imagePath,
+                    width: double.infinity,
+                    height: 180,
+                    fit: BoxFit.cover,
+                  ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -92,10 +105,7 @@ class LaporanCard extends StatelessWidget {
                   children: [
                     Text(
                       tanggal,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                      ),
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                     Row(
                       children: [

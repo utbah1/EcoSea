@@ -17,7 +17,7 @@ class HomeMenuItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AspectRatio(
-        aspectRatio: 1, // selalu kotak
+        aspectRatio: 1, 
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,

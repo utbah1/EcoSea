@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../service/gemini_service.dart';
+import '../services/gemini_service.dart';
 
 class ChatbotPage extends StatefulWidget {
   const ChatbotPage({super.key});
@@ -10,34 +10,64 @@ class ChatbotPage extends StatefulWidget {
 
 class _ChatbotPageState extends State<ChatbotPage> {
   final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
   final List<Map<String, String>> messages = [];
   bool isLoading = false;
 
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || isLoading) return;
 
     setState(() {
       messages.add({"role": "user", "text": text});
       isLoading = true;
       _controller.clear();
     });
+    _scrollToBottom();
+
+    final history = messages.length <= 12
+        ? List<Map<String, String>>.from(messages)
+        : messages.sublist(messages.length - 12);
 
     try {
-      final reply = await GeminiService.sendMessage(text);
+      final reply = await GeminiService.sendMessage(
+        text,
+        history: history,
+      );
+
       setState(() {
         messages.add({"role": "ai", "text": reply});
       });
-    } catch (_) {
+    } catch (e) {
       setState(() {
         messages.add({
           "role": "ai",
-          "text": "Maaf, terjadi kendala. Silakan coba lagi."
+          "text": "Maaf, terjadi kendala. Coba lagi ya.\n\nDetail: $e"
         });
       });
     } finally {
       setState(() => isLoading = false);
+      _scrollToBottom();
     }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -51,9 +81,25 @@ class _ChatbotPageState extends State<ChatbotPage> {
         children: [
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: messages.length,
+              itemCount: messages.length + (isLoading ? 1 : 0),
               itemBuilder: (context, index) {
+                if (isLoading && index == messages.length) {
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text("EcoSea sedang mengetik..."),
+                    ),
+                  );
+                }
+
                 final msg = messages[index];
                 final isUser = msg["role"] == "user";
 
@@ -63,8 +109,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
                   child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 6),
                     padding: const EdgeInsets.all(12),
-                    constraints:
-                        BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                    ),
                     decoration: BoxDecoration(
                       color: isUser
                           ? const Color(0xFF0077B6)
@@ -72,7 +119,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      msg["text"]!,
+                      msg["text"] ?? "",
                       style: TextStyle(
                         color: isUser ? Colors.white : Colors.black87,
                       ),
@@ -82,13 +129,6 @@ class _ChatbotPageState extends State<ChatbotPage> {
               },
             ),
           ),
-
-          if (isLoading)
-            const Padding(
-              padding: EdgeInsets.all(8),
-              child: CircularProgressIndicator(),
-            ),
-
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -96,6 +136,8 @@ class _ChatbotPageState extends State<ChatbotPage> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _sendMessage(),
                     decoration: const InputDecoration(
                       hintText: "Tanya seputar kebersihan pantai...",
                       border: OutlineInputBorder(),

@@ -17,11 +17,11 @@ class BeachZone {
   Color get fillColor {
     switch (status) {
       case ZoneStatus.bersih:
-        return Colors.green.withOpacity(0.35);
+        return Colors.green.withValues(alpha: 0.30);
       case ZoneStatus.perhatian:
-        return Colors.orange.withOpacity(0.35);
+        return Colors.orange.withValues(alpha: 0.30);
       case ZoneStatus.kotor:
-        return Colors.red.withOpacity(0.35);
+        return Colors.red.withValues(alpha: 0.30);
     }
   }
 

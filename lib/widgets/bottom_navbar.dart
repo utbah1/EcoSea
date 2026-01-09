@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -25,7 +23,7 @@ class BottomNavbar extends StatelessWidget {
         context,
         MaterialPageRoute(
           builder: (_) => BuatPelaporanPage(
-            imageFile: File(photo.path),
+            foto: photo,
           ),
         ),
       );
