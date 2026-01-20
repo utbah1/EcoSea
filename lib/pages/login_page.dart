@@ -19,6 +19,8 @@ class _LoginPageState extends State<LoginPage> {
   final passCtrl = TextEditingController();
   final auth = AuthService();
 
+  bool _googleLoading = false;
+
   @override
   void dispose() {
     emailCtrl.dispose();
@@ -52,13 +54,13 @@ class _LoginPageState extends State<LoginPage> {
                   padding: const EdgeInsets.all(24),
                   width: 330,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(.9),
+                    color: Colors.white.withValues(alpha: 0.90),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
                         blurRadius: 10,
                         spreadRadius: 1,
-                        color: Colors.black.withOpacity(.1),
+                        color: Colors.black.withValues(alpha: 0.10),
                       )
                     ],
                   ),
@@ -106,8 +108,10 @@ class _LoginPageState extends State<LoginPage> {
                         MainButton(
                           text: "Login",
                           onPressed: () async {
-                            // validasi form
                             if (!(_formKey.currentState?.validate() ?? false)) return;
+
+                            final navigator = Navigator.of(context);
+                            final messenger = ScaffoldMessenger.of(context);
 
                             final success = await auth.login(
                               emailCtrl.text.trim(),
@@ -117,12 +121,11 @@ class _LoginPageState extends State<LoginPage> {
                             if (!mounted) return;
 
                             if (success) {
-                              Navigator.pushReplacement(
-                                context,
+                              navigator.pushReplacement(
                                 MaterialPageRoute(builder: (_) => const HomePage()),
                               );
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(
                                   behavior: SnackBarBehavior.floating,
                                   backgroundColor: Colors.redAccent,
@@ -135,9 +138,39 @@ class _LoginPageState extends State<LoginPage> {
                             }
                           },
                         ),
-
+                        
                         const SizedBox(height: 10),
-                        GoogleButton(onPressed: () {}),
+                        GoogleButton(
+                          loading: _googleLoading,
+                          onPressed: () async {
+                            if (_googleLoading) return;
+
+                            final navigator = Navigator.of(context);
+                            final messenger = ScaffoldMessenger.of(context);
+
+                            setState(() => _googleLoading = true);
+                            final success = await auth.loginWithGoogle();
+                            if (!mounted) return;
+                            setState(() => _googleLoading = false);
+
+                            if (success) {
+                              navigator.pushReplacement(
+                                MaterialPageRoute(builder: (_) => const HomePage()),
+                              );
+                            } else {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  behavior: SnackBarBehavior.floating,
+                                  backgroundColor: Colors.redAccent,
+                                  content: const Text("Login Google gagal / dibatalkan"),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
                         const SizedBox(height: 15),
 
                         GestureDetector(

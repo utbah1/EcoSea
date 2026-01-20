@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
@@ -56,13 +54,12 @@ class _BuatPelaporanPageState extends State<BuatPelaporanPage> {
       if (!mounted) return;
       setState(() => _imageBytes = bytes);
     } catch (_) {
-      // biarkan preview fallback ke placeholder
+
     } finally {
       if (mounted) setState(() => _isLoadingImage = false);
     }
   }
 
-  // GET GPS + NAMA LOKASI
   Future<void> _getLocationAndAddress() async {
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -108,7 +105,7 @@ class _BuatPelaporanPageState extends State<BuatPelaporanPage> {
           place.subLocality,
           place.locality,
           place.administrativeArea,
-        ].where((e) => e != null && e!.trim().isNotEmpty).map((e) => e!.trim());
+        ].where((e) => e != null && e.trim().isNotEmpty).map((e) => e!.trim());
 
         setState(() {
           lokasiNama = parts.isEmpty ? "Lokasi tidak diketahui" : parts.join(", ");
@@ -185,8 +182,15 @@ class _BuatPelaporanPageState extends State<BuatPelaporanPage> {
 
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Laporan berhasil dikirim")),
-      );    
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF2E7D32),
+          content: const Text("Terima kasih! Laporan kamu berhasil dikirim."),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
       await Future.delayed(const Duration(milliseconds: 700));
       if (!mounted) return;
       Navigator.of(context).pop();

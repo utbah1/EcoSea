@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../mod/beach_zones_data.dart';
+import '../mod/beach_zone.dart';
 import '../pages2/camera_page.dart';
 import '../widgets/ecosea_map_view.dart';
 
@@ -63,6 +64,46 @@ class _MapsPageState extends State<MapsPage> {
     }
   }
 
+  // =========================
+  // FIT FULL ZONE (POLYGON)
+  // =========================
+  LatLngBounds _boundsFromPoints(List<LatLng> pts) {
+    double minLat = pts.first.latitude;
+    double maxLat = pts.first.latitude;
+    double minLng = pts.first.longitude;
+    double maxLng = pts.first.longitude;
+
+    for (final p in pts) {
+      if (p.latitude < minLat) minLat = p.latitude;
+      if (p.latitude > maxLat) maxLat = p.latitude;
+      if (p.longitude < minLng) minLng = p.longitude;
+      if (p.longitude > maxLng) maxLng = p.longitude;
+    }
+
+    return LatLngBounds(
+      LatLng(minLat, minLng), // southWest
+      LatLng(maxLat, maxLng), // northEast
+    );
+  }
+
+  void _goToZone(BeachZone zone) {
+    final bounds = _boundsFromPoints(zone.area);
+
+    // flutter_map v6+:
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: bounds,
+        padding: const EdgeInsets.all(60), // biar tidak mepet pinggir
+      ),
+    );
+
+    // Kalau flutter_map kamu versi lama (fitCamera tidak ada), pakai ini:
+    // _mapController.fitBounds(
+    //   bounds,
+    //   options: const FitBoundsOptions(padding: EdgeInsets.all(60)),
+    // );
+  }
+
   @override
   Widget build(BuildContext context) {
     final zones = BeachZonesData.zones;
@@ -83,7 +124,6 @@ class _MapsPageState extends State<MapsPage> {
               controller: _mapController,
               polygonBorderWidth: 3,
             ),
-
           DraggableScrollableSheet(
             initialChildSize: 0.12,
             minChildSize: 0.10,
@@ -112,14 +152,23 @@ class _MapsPageState extends State<MapsPage> {
                     const SizedBox(height: 12),
                     const Text(
                       "Legenda Zona",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
-                    _legendItem(color: Colors.green, text: "Zona Hijau — Bersih"),
-                    _legendItem(color: Colors.orange, text: "Zona Kuning — Perlu Perhatian"),
-                    _legendItem(color: Colors.red, text: "Zona Merah — Kotor"),
+                    _legendItem(
+                      color: Colors.green,
+                      text: "Zona Hijau — Bersih",
+                    ),
+                    _legendItem(
+                      color: Colors.orange,
+                      text: "Zona Kuning — Perlu Perhatian",
+                    ),
+                    _legendItem(
+                      color: Colors.red,
+                      text: "Zona Merah — Kotor",
+                    ),
                     const SizedBox(height: 16),
-
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xff0077B6),
@@ -140,21 +189,19 @@ class _MapsPageState extends State<MapsPage> {
                         );
                       },
                     ),
-
                     const SizedBox(height: 16),
                     const Text(
                       "Pindah ke Pantai",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-
                     ...zones.map(
                       (zone) => ListTile(
                         leading: const Icon(Icons.location_on),
                         title: Text(zone.name),
-                        onTap: () => _mapController.move(zone.area.first, 15),
+                        onTap: () => _goToZone(zone),
                       ),
                     ),
-
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -174,7 +221,10 @@ class _MapsPageState extends State<MapsPage> {
           Container(
             width: 16,
             height: 16,
-            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(4),
+            ),
           ),
           const SizedBox(width: 10),
           Text(text),

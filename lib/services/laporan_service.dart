@@ -89,11 +89,8 @@ class LaporanService {
             : null;
         throw AuthExpiredException(msg?.toString() ?? 'Sesi login habis. Silakan login ulang.');
       }
-
-      print('ERROR kirim laporan: $e');
       return false;
     } catch (e) {
-      print('ERROR kirim laporan: $e');
       rethrow;
     }
   }
@@ -112,7 +109,6 @@ class LaporanService {
 
       return res.data;
     } catch (e) {
-      print("ERROR get laporan terbaru: $e");
       rethrow;
     }
   }
@@ -135,7 +131,6 @@ class LaporanService {
       if (e.response?.statusCode == 401) {
         throw AuthExpiredException();
       }
-      print('ERROR get laporan user: $e');
       return [];
     }
   }
@@ -158,7 +153,6 @@ class LaporanService {
       if (e.response?.statusCode == 401) {
         throw AuthExpiredException();
       }
-      print('ERROR get laporan admin: $e');
       return [];
     }
   }
@@ -186,7 +180,6 @@ class LaporanService {
       if (e.response?.statusCode == 401) {
         throw AuthExpiredException();
       }
-      print('ERROR tanggapi laporan: $e');
       return false;
     }
   }

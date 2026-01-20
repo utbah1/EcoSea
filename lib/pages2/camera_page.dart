@@ -3,47 +3,43 @@ import 'package:image_picker/image_picker.dart';
 
 import 'buat_laporan_page.dart';
 
-class CameraPage extends StatelessWidget {
+class CameraPage extends StatefulWidget {
   const CameraPage({super.key});
 
-  // PICK IMAGE
+  @override
+  State<CameraPage> createState() => _CameraPageState();
+}
 
-  Future<void> _takePhoto(BuildContext context) async {
-    final picker = ImagePicker();
-    final photo = await picker.pickImage(
+class _CameraPageState extends State<CameraPage> {
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _takePhoto() async {
+    final photo = await _picker.pickImage(
       source: ImageSource.camera,
       imageQuality: 85,
     );
 
-    if (photo != null) {
-      _goToReport(context, photo);
-    }
+    if (!mounted) return;
+    if (photo != null) _goToReport(photo);
   }
 
-  Future<void> _pickFromGallery(BuildContext context) async {
-    final picker = ImagePicker();
-    final photo = await picker.pickImage(
+  Future<void> _pickFromGallery() async {
+    final photo = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 85,
     );
 
-    if (photo != null) {
-      _goToReport(context, photo);
-    }
+    if (!mounted) return;
+    if (photo != null) _goToReport(photo);
   }
 
-  void _goToReport(BuildContext context, XFile imageFile) {
-    Navigator.push(
-      context,
+  void _goToReport(XFile imageFile) {
+    Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => BuatPelaporanPage(
-          foto: imageFile,
-        ),
+        builder: (_) => BuatPelaporanPage(foto: imageFile),
       ),
     );
   }
-
-  // UI
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +56,6 @@ class CameraPage extends StatelessWidget {
           children: [
             const Spacer(),
 
-            /// ICON ILUSTRASI
             Container(
               padding: const EdgeInsets.all(22),
               decoration: const BoxDecoration(
@@ -97,19 +92,18 @@ class CameraPage extends StatelessWidget {
 
             const Spacer(),
 
-            /// BUTTON AREA
             Row(
               children: [
                 _ActionButton(
                   icon: Icons.photo_camera,
                   label: "Kamera",
-                  onTap: () => _takePhoto(context),
+                  onTap: _takePhoto,
                 ),
                 const SizedBox(width: 14),
                 _ActionButton(
                   icon: Icons.photo_library,
                   label: "Galeri",
-                  onTap: () => _pickFromGallery(context),
+                  onTap: _pickFromGallery,
                 ),
               ],
             ),

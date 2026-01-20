@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
 
@@ -24,15 +25,12 @@ class AuthService {
         },
       );
 
-      print("LOGIN RESPONSE: ${res.data}");
-
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString("token", res.data['access_token']);
       await prefs.setString("role", res.data['role']);
 
       return true;
     } catch (e) {
-      print("LOGIN ERROR: $e");
       return false;
     }
   }
@@ -50,7 +48,40 @@ class AuthService {
       );
       return true;
     } catch (e) {
-      print("REGISTER ERROR: $e");
+      return false;
+    }
+  }
+
+  /// Login menggunakan Google Sign-In.
+  ///
+  /// Alur:
+  /// 1) Google Sign-In di device
+  /// 2) Ambil `idToken`
+  /// 3) Kirim ke backend `/api/google-login` untuk diverifikasi
+  /// 4) Backend mengembalikan JWT aplikasi (access_token)
+  Future<bool> loginWithGoogle() async {
+    try {
+      final googleSignIn = GoogleSignIn(scopes: const ["email"]);
+      final account = await googleSignIn.signIn();
+
+      // User menutup dialog / cancel
+      if (account == null) return false;
+
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null || idToken.isEmpty) return false;
+
+      final res = await _dio.post(
+        "/api/google-login",
+        data: {"id_token": idToken},
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString("token", res.data['access_token']);
+      await prefs.setString("role", res.data['role']);
+
+      return true;
+    } catch (e) {
       return false;
     }
   }

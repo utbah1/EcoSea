@@ -1,4 +1,6 @@
 class ApiConfig {
-  static const String baseUrl = "http://192.168.56.41:5000";
-  static const String apiUrl = "$baseUrl/api";
+  static const baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://localhost:5000',
+  );
 }

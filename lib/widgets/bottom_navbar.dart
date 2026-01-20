@@ -7,30 +7,26 @@ import '../pages2/buat_laporan_page.dart';
 
 class BottomNavbar extends StatelessWidget {
   final int currentIndex;
-
   const BottomNavbar({super.key, required this.currentIndex});
 
-  Future<void> _takePhoto(BuildContext context) async {
-    final picker = ImagePicker();
+  static final ImagePicker _picker = ImagePicker();
 
-    final photo = await picker.pickImage(
+  Future<void> _takePhoto(BuildContext context) async {
+    final navigator = Navigator.of(context);
+
+    final photo = await _picker.pickImage(
       source: ImageSource.camera,
       imageQuality: 85,
     );
 
     if (photo != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => BuatPelaporanPage(
-            foto: photo,
-          ),
-        ),
+      navigator.push(
+        MaterialPageRoute(builder: (_) => BuatPelaporanPage(foto: photo)),
       );
     }
   }
 
-  // NAVIGASI TAB
+
 
   void _onItemTapped(BuildContext context, int index) {
     if (index == currentIndex) return;

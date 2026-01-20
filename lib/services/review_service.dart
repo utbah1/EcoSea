@@ -2,9 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/api.dart';
-import '../mod/user_profile.dart';
 
-class UserService {
+class ReviewService {
   static final Dio _dio = Dio(
     BaseOptions(
       baseUrl: ApiConfig.baseUrl,
@@ -19,21 +18,28 @@ class UserService {
     return prefs.getString("token");
   }
 
-  static Future<UserProfile> getMe() async {
+  static Future<void> submitReview({
+    required int rating,
+    String? kritik,
+    String? saran,
+  }) async {
     final token = await _getToken();
     if (token == null) {
       throw Exception("Token tidak ditemukan. Silakan login ulang.");
     }
 
-    final res = await _dio.get(
-      "/api/me",
+    final res = await _dio.post(
+      "/api/ulasan",
+      data: {
+        "rating": rating,
+        "kritik": (kritik ?? "").trim(),
+        "saran": (saran ?? "").trim(),
+      },
       options: Options(headers: {"Authorization": "Bearer $token"}),
     );
 
-    if (res.statusCode == 200 && res.data != null) {
-      return UserProfile.fromJson(Map<String, dynamic>.from(res.data));
+    if (res.statusCode != 201) {
+      throw Exception("Gagal mengirim ulasan.");
     }
-
-    throw Exception("Gagal mengambil data profil.");
   }
 }

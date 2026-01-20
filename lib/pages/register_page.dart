@@ -52,7 +52,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   padding: const EdgeInsets.all(24),
                   width: 330,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(.9),
+                    color: Colors.white.withValues(alpha: 0.90),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Form(
@@ -113,6 +113,9 @@ class _RegisterPageState extends State<RegisterPage> {
                           onPressed: () async {
                             if (!(_formKey.currentState?.validate() ?? false)) return;
 
+                            final messenger = ScaffoldMessenger.of(context);
+                            final navigator = Navigator.of(context);
+
                             final success = await auth.register(
                               namaCtrl.text.trim(),
                               emailCtrl.text.trim(),
@@ -122,7 +125,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             if (!mounted) return;
 
                             if (success) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(
                                   behavior: SnackBarBehavior.floating,
                                   backgroundColor: const Color(0xff0077B6),
@@ -133,12 +136,11 @@ class _RegisterPageState extends State<RegisterPage> {
                                 ),
                               );
 
-                              Navigator.pushReplacement(
-                                context,
+                              navigator.pushReplacement(
                                 MaterialPageRoute(builder: (_) => const LoginPage()),
                               );
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(
                                   behavior: SnackBarBehavior.floating,
                                   backgroundColor: Colors.redAccent,
@@ -151,6 +153,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             }
                           },
                         ),
+
 
                         const SizedBox(height: 15),
 
