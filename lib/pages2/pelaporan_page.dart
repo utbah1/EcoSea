@@ -1,7 +1,10 @@
 import 'package:ecosea/pages2/camera_page.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
 import '../services/laporan_service.dart';
+import '../services/auth_expired_exception.dart';
+import '../pages/login_page.dart';
 import '../widgets/bottom_navbar.dart';
 
 class PelaporanPage extends StatefulWidget {
@@ -29,7 +32,6 @@ class _PelaporanPageState extends State<PelaporanPage> {
   }
 
   String _hostUrl() {
-    // baseUrl kamu biasanya: http://IP:5000/api
     return ApiConfig.baseUrl.replaceFirst(RegExp(r'/api/?$'), '');
   }
 
@@ -41,8 +43,6 @@ class _PelaporanPageState extends State<PelaporanPage> {
 
     p = p.replaceAll('\\', '/');
     if (!p.startsWith('/')) p = '/$p';
-
-    // hilangkan dobel prefix kalau masih ada data lama
     p = p.replaceAll('/uploads/laporan/uploads/laporan/', '/uploads/laporan/');
 
     return '${_hostUrl()}${Uri.encodeFull(p)}';
@@ -140,13 +140,45 @@ class _PelaporanPageState extends State<PelaporanPage> {
                 }
 
                 if (snap.hasError) {
+                  final err = snap.error;
+                  final msg = err?.toString() ?? "";
+                  final lower = msg.toLowerCase();
+                  final isAuth = err is AuthExpiredException ||
+                      lower.contains("sesi") ||
+                      lower.contains("login") ||
+                      lower.contains("token") ||
+                      lower.contains("unauthorized") ||
+                      lower.contains("forbidden");
+
+                  if (isAuth) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) async {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.remove("token");
+
+                      if (!context.mounted) return;
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginPage()),
+                        (route) => false,
+                      );
+                    });
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey[100],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text("Sesi habis, mengarahkan ke login..."),
+                    );
+                  }
+
                   return Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.blueGrey[100],
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text("Gagal memuat laporan terbaru.\n${snap.error}"),
+                    child: Text("Gagal memuat laporan terbaru.\n$msg"),
                   );
                 }
 

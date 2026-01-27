@@ -162,7 +162,10 @@ class _LoginPageState extends State<LoginPage> {
                                 SnackBar(
                                   behavior: SnackBarBehavior.floating,
                                   backgroundColor: Colors.redAccent,
-                                  content: const Text("Login Google gagal / dibatalkan"),
+                                  content: Text(
+                                    auth.lastGoogleError ??
+                                        "Login Google gagal / dibatalkan",
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),

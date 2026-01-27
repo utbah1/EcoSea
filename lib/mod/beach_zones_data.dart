@@ -97,10 +97,7 @@ class BeachZonesData {
       ]),
     ),
   ];
-
-  // =========================
-  // APPLY MODE
-  // =========================
+  
   static List<LatLng> _apply(List<LatLng> raw) {
     final cleaned = _dedupe(raw);
     if (cleaned.length < 3) return cleaned;
@@ -118,7 +115,6 @@ class BeachZonesData {
   }
 
   static List<LatLng> _dedupe(List<LatLng> pts) {
-    // dedupe by rounding (biar stabil)
     final seen = <String>{};
     final out = <LatLng>[];
     for (final p in pts) {
@@ -139,10 +135,6 @@ class BeachZonesData {
     return [...pts, first];
   }
 
-  // =========================
-  // CONVEX HULL (Monotonic Chain)
-  // hasil: bukan kotak, tapi 1 polygon rapi mengikuti "kulit terluar"
-  // =========================
   static List<LatLng> _convexHull(List<LatLng> pts) {
     if (pts.length <= 3) return pts;
 
@@ -178,15 +170,11 @@ class BeachZonesData {
       upper.add(pt);
     }
 
-    // remove last because it repeats start point
     lower.removeLast();
     upper.removeLast();
     return [...lower, ...upper];
   }
 
-  // =========================
-  // BLOCK (kotak miring) - kalau kamu mau mode ini lagi
-  // =========================
   static List<LatLng> _makeBeachBlock(
     List<LatLng> points, {
     double thicknessFactor = 0.12,

@@ -3,15 +3,21 @@ import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api.dart';
+import 'auth_expired_exception.dart';
 
-class AuthExpiredException implements Exception {
-  final String message;
-  AuthExpiredException([
-    this.message = 'Sesi login habis atau belum login. Silakan login ulang.',
-  ]);
+class KirimLaporanResult {
+  final bool ok;
+  final String? message;
+  final String? aiLabel;
+  /// Confidence dari model. Biasanya 0..1 (akan dikonversi ke persen di UI).
+  final double? aiConfidence;
 
-  @override
-  String toString() => message;
+  const KirimLaporanResult({
+    required this.ok,
+    this.message,
+    this.aiLabel,
+    this.aiConfidence,
+  });
 }
 
 class LaporanService {
@@ -36,7 +42,7 @@ class LaporanService {
     return token;
   }
 
-  Future<bool> kirimLaporan({
+  Future<KirimLaporanResult> kirimLaporan({
     required String judul,
     required String deskripsi,
     required String lokasi,
@@ -78,26 +84,63 @@ class LaporanService {
         ),
       );
 
+      if (res.statusCode == 201) {
+        final body = res.data;
 
-      return res.statusCode == 201;
+        String? aiLabel;
+        double? aiConfidence;
+        String? message;
+
+        if (body is Map) {
+          message = body['message']?.toString();
+          aiLabel = body['ai_label']?.toString();
+          final rawConf = body['ai_confidence'];
+          if (rawConf is num) {
+            aiConfidence = rawConf.toDouble();
+          } else if (rawConf is String) {
+            aiConfidence = double.tryParse(rawConf);
+          }
+        }
+
+        return KirimLaporanResult(
+          ok: true,
+          message: message,
+          aiLabel: aiLabel,
+          aiConfidence: aiConfidence,
+        );
+      }
+
+      return const KirimLaporanResult(
+        ok: false,
+        message: 'Gagal mengirim laporan. Coba lagi.',
+      );
     } 
       on DioException catch (e) {
       final status = e.response?.statusCode;
-      if (status == 401) {
+      if (status == 401 || status == 422 || status == 404) {
         final msg = (e.response?.data is Map)
             ? (e.response?.data['msg'] ?? e.response?.data['message'])
             : null;
         throw AuthExpiredException(msg?.toString() ?? 'Sesi login habis. Silakan login ulang.');
       }
-      return false;
+      final msg = (e.response?.data is Map)
+          ? (e.response?.data['message'] ?? e.response?.data['msg'])
+          : null;
+      return KirimLaporanResult(
+        ok: false,
+        message: msg?.toString() ?? 'Gagal mengirim laporan. Coba lagi.',
+      );
     } catch (e) {
-      rethrow;
+      return KirimLaporanResult(
+        ok: false,
+        message: e.toString(),
+      );
     }
   }
 
   Future<List<dynamic>> getLaporanTerbaru({int limit = 5}) async {
     try {
-      final token = await _getToken();
+      final token = await _requireToken();
 
       final res = await _dio.get(
         "/api/laporan/terbaru",
@@ -108,7 +151,11 @@ class LaporanService {
       );
 
       return res.data;
-    } catch (e) {
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 401 || status == 422 || status == 404) {
+        throw const AuthExpiredException();
+      }
       rethrow;
     }
   }
@@ -128,7 +175,8 @@ class LaporanService {
 
       return res.data;
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
+      final status = e.response?.statusCode;
+      if (status == 401 || status == 422 || status == 404) {
         throw AuthExpiredException();
       }
       return [];
@@ -150,7 +198,8 @@ class LaporanService {
 
       return res.data;
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
+      final status = e.response?.statusCode;
+      if (status == 401 || status == 422 || status == 404) {
         throw AuthExpiredException();
       }
       return [];
@@ -177,7 +226,8 @@ class LaporanService {
 
       return res.statusCode == 200;
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
+      final status = e.response?.statusCode;
+      if (status == 401 || status == 422 || status == 404) {
         throw AuthExpiredException();
       }
       return false;

@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import '../config/api.dart';
 
 class AuthService {
@@ -14,6 +16,13 @@ class AuthService {
       },
     ),
   );
+
+  /// Berisi alasan terakhir kenapa Google login gagal (untuk ditampilkan di UI / debug).
+  String? lastGoogleError;
+
+  /// Ringkasan konfigurasi runtime (berguna untuk debug di device).
+  String get debugConfig =>
+      "API_BASE_URL=${ApiConfig.baseUrl} | GOOGLE_WEB_CLIENT_ID=${ApiConfig.googleWebClientId.isEmpty ? 'KOSONG' : 'SET'}";
 
   Future<bool> login(String email, String password) async {
     try {
@@ -52,24 +61,33 @@ class AuthService {
     }
   }
 
-  /// Login menggunakan Google Sign-In.
-  ///
-  /// Alur:
-  /// 1) Google Sign-In di device
-  /// 2) Ambil `idToken`
-  /// 3) Kirim ke backend `/api/google-login` untuk diverifikasi
-  /// 4) Backend mengembalikan JWT aplikasi (access_token)
   Future<bool> loginWithGoogle() async {
     try {
-      final googleSignIn = GoogleSignIn(scopes: const ["email"]);
-      final account = await googleSignIn.signIn();
+      lastGoogleError = null;
 
-      // User menutup dialog / cancel
-      if (account == null) return false;
+    final googleSignIn = GoogleSignIn(
+      scopes: const ["email"],
+      serverClientId: ApiConfig.googleWebClientId.isEmpty ? null : ApiConfig.googleWebClientId,
+    );
+
+    try {
+      await googleSignIn.signOut();
+    } catch (_) {}
+
+    final account = await googleSignIn.signIn();
+
+      if (account == null) {
+        lastGoogleError = "Dibatalkan oleh pengguna";
+        return false;
+      }
 
       final auth = await account.authentication;
       final idToken = auth.idToken;
-      if (idToken == null || idToken.isEmpty) return false;
+      if (idToken == null || idToken.isEmpty) {
+        lastGoogleError =
+            "idToken kosong. Isi GOOGLE_WEB_CLIENT_ID (Web OAuth Client ID) dan pastikan konfigurasi SHA-1 + package name benar.";
+        return false;
+      }
 
       final res = await _dio.post(
         "/api/google-login",
@@ -81,7 +99,34 @@ class AuthService {
       await prefs.setString("role", res.data['role']);
 
       return true;
+    } on DioException catch (e) {
+      final detail = () {
+        try {
+          final d = e.response?.data;
+          if (d is Map && d['message'] != null) return d['message'].toString();
+          return e.message ?? e.toString();
+        } catch (_) {
+          return e.message ?? e.toString();
+        }
+      }();
+
+      lastGoogleError =
+          "Gagal menghubungi backend (${ApiConfig.baseUrl}). Jika pakai emulator Android, gunakan API_BASE_URL=http://10.0.2.2:5000 (bukan localhost). Detail: $detail";
+      debugPrint(lastGoogleError);
+      return false;
+    } on PlatformException catch (e) {
+      final msg = e.message ?? '';
+      final api10Hint = (msg.contains('ApiException: 10') || msg.contains('DEVELOPER_ERROR'))
+          ? " (Biasanya karena SHA-1 / package name tidak cocok di Firebase/Google Cloud, atau google-services.json belum benar.)"
+          : "";
+
+      lastGoogleError =
+          "Google Sign-In error: ${e.code}${msg.isNotEmpty ? ' - $msg' : ''}$api10Hint";
+      debugPrint(lastGoogleError);
+      return false;
     } catch (e) {
+      lastGoogleError = "Google Sign-In error: $e";
+      debugPrint(lastGoogleError);
       return false;
     }
   }

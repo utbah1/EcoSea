@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/laporan_service.dart';
+import '../services/auth_expired_exception.dart';
 
 class BuatPelaporanPage extends StatefulWidget {
   final XFile? foto;
@@ -31,6 +32,78 @@ class _BuatPelaporanPageState extends State<BuatPelaporanPage> {
   Uint8List? _imageBytes;
   bool _isLoadingImage = false;
   bool _isSending = false;
+
+  String _prettyLabel(String raw) {
+    final v = raw.trim().toLowerCase();
+    if (v == 'bersih') return 'Bersih';
+    if (v == 'kotor') return 'Kotor';
+    return raw;
+  }
+
+  String _prettyConfidence(double conf) {
+    // Backend biasanya kirim 0..1. Kalau ternyata sudah 0..100, tetap aman.
+    final percent = conf <= 1.0 ? conf * 100.0 : conf;
+    return '${percent.toStringAsFixed(2)}%';
+  }
+
+  Future<void> _showAiPopup({String? label, double? confidence}) async {
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.auto_awesome),
+              SizedBox(width: 10),
+              Text('Hasil Deteksi AI'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('AI membaca foto laporan kamu dan memprediksi:'),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Label',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  Text(label == null || label.trim().isEmpty ? '—' : _prettyLabel(label)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Confidence',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  Text(confidence == null ? '—' : _prettyConfidence(confidence)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Catatan: Ini hanya prediksi. Laporan tetap akan diverifikasi admin.',
+                style: TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -156,9 +229,9 @@ class _BuatPelaporanPageState extends State<BuatPelaporanPage> {
 
     setState(() => _isSending = true);
 
-    bool ok = false;
+    KirimLaporanResult result = const KirimLaporanResult(ok: false);
     try {
-      ok = await _laporanService.kirimLaporan(
+      result = await _laporanService.kirimLaporan(
         judul: judul,
         deskripsi: deskripsi,
         lokasi: lokasiNama,
@@ -180,24 +253,20 @@ class _BuatPelaporanPageState extends State<BuatPelaporanPage> {
 
     setState(() => _isSending = false);
 
-    if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color(0xFF2E7D32),
-          content: const Text("Terima kasih! Laporan kamu berhasil dikirim."),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+    if (result.ok) {
+      // Popup AI label + confidence
+      await _showAiPopup(
+        label: result.aiLabel,
+        confidence: result.aiConfidence,
       );
+
       await Future.delayed(const Duration(milliseconds: 700));
       if (!mounted) return;
       Navigator.of(context).pop();
       Navigator.of(context).pop();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Gagal mengirim laporan. Coba lagi.")),
+        SnackBar(content: Text(result.message ?? "Gagal mengirim laporan. Coba lagi.")),
       );
     }
   }

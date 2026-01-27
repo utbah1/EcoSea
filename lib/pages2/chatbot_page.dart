@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import '../services/gemini_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/chat_service.dart';
+import '../services/auth_expired_exception.dart';
+import '../pages/login_page.dart';
 
 class ChatbotPage extends StatefulWidget {
   const ChatbotPage({super.key});
@@ -42,7 +45,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
         : messages.sublist(messages.length - 12);
 
     try {
-      final reply = await GeminiService.sendMessage(
+      final reply = await ChatService.sendMessage(
         text,
         history: history,
       );
@@ -51,6 +54,30 @@ class _ChatbotPageState extends State<ChatbotPage> {
         messages.add({"role": "ai", "text": reply});
       });
     } catch (e) {
+      final msg = e.toString();
+      final lower = msg.toLowerCase();
+      final isAuth = e is AuthExpiredException ||
+          lower.contains('sesi') ||
+          lower.contains('login') ||
+          lower.contains('token') ||
+          lower.contains('unauthorized') ||
+          lower.contains('forbidden');
+
+      if (isAuth && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove("token");
+
+          if (!context.mounted) return;
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginPage()),
+            (route) => false,
+          );
+        });
+        return;
+      }
+
       setState(() {
         messages.add({
           "role": "ai",
